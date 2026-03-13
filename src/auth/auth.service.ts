@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -36,5 +37,15 @@ export class AuthService {
     const access_token = await this.jwtService.signAsync(payload);
     return { access_token };
   }
-}
 
+  async changeOwnPassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.usersService.findByIdWithPassword(userId);
+    if (!user || !user.password) throw new UnauthorizedException('Usuario no encontrado');
+    const match = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!match) throw new UnauthorizedException('Contraseña actual incorrecta');
+    const sameAsCurrent = await bcrypt.compare(dto.newPassword, user.password);
+    if (sameAsCurrent) throw new UnauthorizedException('La nueva contraseña debe ser diferente a la actual');
+    await this.usersService.changePassword(user.email, dto.newPassword);
+    return { updated: true };
+  }
+}
