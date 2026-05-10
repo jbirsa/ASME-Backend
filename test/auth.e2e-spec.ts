@@ -102,4 +102,53 @@ describe('Auth flows (e2e)', () => {
       })
       .expect(200);
   });
+
+  it('resets a password with the emailed code flow', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'alumno@asme.org',
+        nombre: 'Juan Perez',
+        password: '123456',
+      })
+      .expect(201);
+
+    const forgotPasswordResponse = await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({
+        email: 'alumno@asme.org',
+      })
+      .expect(200);
+
+    expect(forgotPasswordResponse.body).toMatchObject({
+      sent: true,
+      code: expect.stringMatching(/^[A-Z]{6}$/),
+    });
+
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({
+        email: 'alumno@asme.org',
+        code: forgotPasswordResponse.body.code,
+        newPassword: '654321',
+      })
+      .expect(200)
+      .expect({ ok: true });
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'alumno@asme.org',
+        password: '123456',
+      })
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'alumno@asme.org',
+        password: '654321',
+      })
+      .expect(200);
+  });
 });

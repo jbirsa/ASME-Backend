@@ -94,20 +94,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    // En dev devolvemos el token para poder probar; en prod solo { sent: true }
-    const res = await this.passwordResetService.createResetToken(dto.email);
+    // En dev devolvemos el codigo para poder probar; en prod solo { sent: true }
+    const res = await this.passwordResetService.createResetCode(dto.email);
     return res;
   }
 
-  @ApiOperation({ summary: 'Restablecer contraseña con token' })
+  @ApiOperation({ summary: 'Restablecer contraseña con codigo' })
   @ApiResponse({ status: 200 })
   @ApiBody({
     type: ResetPasswordDto,
     examples: {
       reset: {
-        summary: 'Reset con token dev',
+        summary: 'Reset con codigo enviado por email',
         value: {
-          token: 'token-dev-obtenido-en-forgot-password',
+          email: 'alumno@asme.org',
+          code: 'QJRMTA',
           newPassword: '654321',
         },
       },
@@ -116,12 +117,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    const ok = await this.passwordResetService.consumeResetToken(
-      dto.token,
+    const ok = await this.passwordResetService.consumeResetCode(
+      dto.email,
+      dto.code,
       dto.newPassword,
     );
     if (!ok.ok) {
-      return { ok: false, message: 'Token inválido o expirado' };
+      return { ok: false, message: 'Codigo inválido o expirado' };
     }
     return { ok: true };
   }

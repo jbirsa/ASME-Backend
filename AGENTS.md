@@ -196,11 +196,12 @@ Reglas:
 
 `POST /auth/reset-password`
 
-Nota: en desarrollo, el token sale de la respuesta de `forgot-password`.
+Nota: en desarrollo, el codigo sale de la respuesta de `forgot-password`.
 
 ```json
 {
-  "token": "token-dev-obtenido-en-forgot-password",
+  "email": "alumno@asme.org",
+  "code": "QJRMTA",
   "newPassword": "654321"
 }
 ```

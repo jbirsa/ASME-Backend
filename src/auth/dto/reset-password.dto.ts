@@ -1,17 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { ToTrimmedString } from '../../common/validation/transforms';
+import {
+  IsEmail,
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import {
+  ToNormalizedEmail,
+  ToUpperTrimmedString,
+} from '../../common/validation/transforms';
 
 export class ResetPasswordDto {
   @ApiProperty({
-    example: 'token-dev-obtenido-en-forgot-password',
-    description: 'Token emitido por el flujo de forgot-password',
+    example: 'alumno@asme.org',
+    description: 'Email del usuario que recibio el codigo de reseteo',
   })
-  @ToTrimmedString()
+  @ToNormalizedEmail()
+  @IsEmail()
+  @MaxLength(254)
+  email: string;
+
+  @ApiProperty({
+    example: 'QJRMTA',
+    description: 'Codigo de 6 letras enviado por email',
+  })
+  @ToUpperTrimmedString()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(512)
-  token: string;
+  @Length(6, 6)
+  @Matches(/^[A-Z]{6}$/, {
+    message: 'code debe tener exactamente 6 letras mayusculas',
+  })
+  code: string;
 
   @ApiProperty({
     minLength: 6,

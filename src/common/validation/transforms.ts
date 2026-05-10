@@ -24,6 +24,12 @@ export function ToNormalizedEmail() {
   );
 }
 
+export function ToUpperTrimmedString() {
+  return Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  );
+}
+
 export function ToInteger() {
   return Type(() => Number);
 }

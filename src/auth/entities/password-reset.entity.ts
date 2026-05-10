@@ -2,7 +2,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -18,10 +17,12 @@ export class PasswordReset {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
-  // Hash del token (no guardamos el token en claro)
-  @Index()
-  @Column({ name: 'token_hash', unique: true })
-  tokenHash: string;
+  // Hash bcrypt del codigo de reset (no guardamos el codigo en claro)
+  @Column({ name: 'code_hash' })
+  codeHash: string;
+
+  @Column({ name: 'failed_attempts', type: 'int', default: 0 })
+  failedAttempts: number;
 
   @Column({ name: 'expires_at', type: 'timestamptz' })
   expiresAt: Date;
