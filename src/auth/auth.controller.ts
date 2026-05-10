@@ -1,5 +1,19 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards, Req } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -7,7 +21,6 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { PasswordResetService } from './password-reset.service';
@@ -24,6 +37,19 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Registro de usuario' })
   @ApiResponse({ status: 201, description: 'Usuario registrado' })
+  @ApiBody({
+    type: RegisterDto,
+    examples: {
+      alumno: {
+        summary: 'Registro basico',
+        value: {
+          email: 'alumno@asme.org',
+          nombre: 'Juan Perez',
+          password: '123456',
+        },
+      },
+    },
+  })
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
@@ -31,6 +57,18 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Login con credenciales' })
   @ApiResponse({ status: 200, description: 'JWT emitido' })
+  @ApiBody({
+    type: LoginDto,
+    examples: {
+      acceso: {
+        summary: 'Login de alumno',
+        value: {
+          email: 'alumno@asme.org',
+          password: '123456',
+        },
+      },
+    },
+  })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   login(@Body() dto: LoginDto) {
@@ -38,7 +76,21 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Solicitud de restablecimiento de contraseña' })
-  @ApiResponse({ status: 200, description: 'Se envió el correo si el usuario existe' })
+  @ApiResponse({
+    status: 200,
+    description: 'Se envió el correo si el usuario existe',
+  })
+  @ApiBody({
+    type: ForgotPasswordDto,
+    examples: {
+      solicitud: {
+        summary: 'Solicitar reset',
+        value: {
+          email: 'alumno@asme.org',
+        },
+      },
+    },
+  })
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -49,23 +101,91 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Restablecer contraseña con token' })
   @ApiResponse({ status: 200 })
+  @ApiBody({
+    type: ResetPasswordDto,
+    examples: {
+      reset: {
+        summary: 'Reset con token dev',
+        value: {
+          token: 'token-dev-obtenido-en-forgot-password',
+          newPassword: '654321',
+        },
+      },
+    },
+  })
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    const ok = await this.passwordResetService.consumeResetToken(dto.token, dto.newPassword);
+    const ok = await this.passwordResetService.consumeResetToken(
+      dto.token,
+      dto.newPassword,
+    );
     if (!ok.ok) {
       return { ok: false, message: 'Token inválido o expirado' };
     }
     return { ok: true };
   }
 
+  @ApiOperation({ summary: 'Cambiar mi contraseña' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
+  @ApiBearerAuth()
+  @ApiBody({
+    type: ChangePasswordDto,
+    examples: {
+      cambio: {
+        summary: 'Cambio de contraseña autenticado',
+        value: {
+          currentPassword: '123456',
+          newPassword: '654321',
+        },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'user')
+  @HttpCode(HttpStatus.OK)
+  @Post('change-password')
+  changePassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
+    return this.authService.changeOwnPassword(req.user.userId, dto);
+  }
+
   @ApiOperation({ summary: 'Reset de contraseña de un usuario (admin)' })
   @ApiResponse({ status: 200 })
   @ApiBearerAuth()
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email', 'newPassword'],
+      properties: {
+        email: {
+          type: 'string',
+          format: 'email',
+          example: 'alumno@asme.org',
+        },
+        newPassword: {
+          type: 'string',
+          minLength: 6,
+          example: '123456',
+        },
+      },
+    },
+    examples: {
+      adminReset: {
+        summary: 'Reset ejecutado por admin',
+        value: {
+          email: 'alumno@asme.org',
+          newPassword: '123456',
+        },
+      },
+    },
+  })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @HttpCode(HttpStatus.OK)
   @Post('admin/reset-password')
-  async adminResetPassword(@Body() body: { email: string; newPassword: string }) {
+  async adminResetPassword(
+    @Body() body: { email: string; newPassword: string },
+  ) {
     await this.usersService.changePassword(body.email, body.newPassword);
     return { updated: true };
   }

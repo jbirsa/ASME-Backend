@@ -21,7 +21,10 @@ export class Inscripcion {
   @JoinColumn({ name: 'usuario_id', referencedColumnName: 'id' })
   usuario: User;
 
-  @ManyToOne(() => Curso, (curso) => curso.inscripciones, { eager: false })
+  @ManyToOne(() => Curso, (curso) => curso.inscripciones, {
+    eager: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'curso_id', referencedColumnName: 'cursoId' })
   curso: Curso;
 

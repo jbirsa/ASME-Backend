@@ -5,9 +5,10 @@ import { Inscripcion } from './entities/inscripcion.entity';
 import { CursosController } from './cursos.controller';
 import { CursosService } from './cursos.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Curso, Inscripcion])],
+  imports: [TypeOrmModule.forFeature([Curso, Inscripcion]), UsersModule],
   controllers: [CursosController],
   providers: [CursosService, RolesGuard],
   exports: [TypeOrmModule],

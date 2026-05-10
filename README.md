@@ -1,98 +1,214 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ASME Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend de ASME implementado en NestJS.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+El dominio actual del proyecto incluye:
 
-## Description
+- autenticacion con JWT
+- usuarios con roles `admin` y `user`
+- cursos
+- clases
+- inscripciones a cursos
+- eventos y patrocinadores
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Swagger esta disponible en `/api` cuando la app esta levantada.
 
-## Project setup
+## Stack
 
-```bash
-$ npm install
-```
+- NestJS 11
+- TypeORM
+- PostgreSQL
+- Swagger
+- class-validator
+- Jest + Supertest
 
-## Compile and run the project
+## Setup local
+
+Instalar dependencias:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+Levantar la base local con Docker:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run db:up
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Levantar el backend apuntando a la DB local del repo:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev:local
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+La DB local del repo usa:
 
-## Resources
+- host: `localhost`
+- port: `5433`
+- user: `postgres`
+- password: `postgres`
+- database: `postgres`
 
-Check out a few resources that may come in handy when working with NestJS:
+## Flujo de migraciones
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Este repo usa migraciones TypeORM como mecanismo principal de cambios de esquema.
 
-## Support
+Regla importante:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- no usar `synchronize` como flujo normal
+- si cambias una entidad y eso afecta la DB, tenes que crear una migracion
 
-## Stay in touch
+## Comandos disponibles
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Ver migraciones pendientes o aplicadas:
 
-## License
+```bash
+npm run migration:show
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Aplicar migraciones usando la configuracion del entorno actual:
+
+```bash
+npm run migration:run
+```
+
+Revertir la ultima migracion usando la configuracion del entorno actual:
+
+```bash
+npm run migration:revert
+```
+
+Aplicar migraciones en la DB local Docker del repo:
+
+```bash
+npm run migration:run:local
+```
+
+Revertir la ultima migracion en la DB local Docker del repo:
+
+```bash
+npm run migration:revert:local
+```
+
+Crear una migracion vacia manual:
+
+```bash
+npm run migration:create
+```
+
+## Como crear una migracion cuando cambias una entidad
+
+Paso a paso recomendado:
+
+1. Levanta la DB local.
+2. Asegurate de tener la DB al dia con las migraciones existentes.
+3. Hace el cambio en la entidad.
+4. Genera la migracion comparando entidades contra la DB.
+5. Revisa el archivo generado.
+6. Corre la migracion en local.
+7. Proba el flujo afectado.
+
+Ejemplo real:
+
+```bash
+npm run db:up
+npm run migration:run:local
+```
+
+Luego de cambiar una o mas entidades, genera la migracion con nombre descriptivo:
+
+```bash
+USE_LOCAL_DB=true LOCAL_DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres DB_SSL=false npm run typeorm -- migration:generate src/database/migrations/AddCursoCategoria
+```
+
+Notas:
+
+- reemplaza `AddCursoCategoria` por un nombre que describa el cambio
+- el nombre final del archivo tendra timestamp automaticamente
+- genera la migracion contra una DB ya actualizada, no contra una DB vieja
+
+Despues corre la migracion generada:
+
+```bash
+npm run migration:run:local
+```
+
+## Cuando usar `migration:create` y cuando `migration:generate`
+
+Usa `migration:generate` cuando:
+
+- cambiaste entidades y queres que TypeORM calcule el diff automaticamente
+
+Usa `migration:create` cuando:
+
+- necesitas escribir SQL manualmente
+- queres corregir constraints, indices o datos existentes a mano
+- el cambio no se deduce bien solo desde las entidades
+
+## Ejemplo de flujo completo
+
+Supongamos que agregas una columna nueva a `Curso`.
+
+1. Editas la entidad.
+2. Generas la migracion:
+
+```bash
+USE_LOCAL_DB=true LOCAL_DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres DB_SSL=false npm run typeorm -- migration:generate src/database/migrations/AddCursoDuracion
+```
+
+3. Revisas el archivo generado en `src/database/migrations/`
+4. Aplicás la migracion:
+
+```bash
+npm run migration:run:local
+```
+
+5. Levantás la app:
+
+```bash
+npm run start:dev:local
+```
+
+## Buenas practicas para migraciones
+
+- usar nombres descriptivos
+- revisar siempre relaciones, `onDelete`, nullability e indices
+- no confiar en que cambiar la entidad alcanza
+- no editar una migracion ya aplicada en otro entorno
+- si una migracion falla, corregirla con una nueva migracion o revertirla y recrearla segun el caso
+
+## Testing
+
+Tests unitarios:
+
+```bash
+npm run test
+```
+
+Tests e2e:
+
+```bash
+npm run test:e2e
+```
+
+Notas para e2e:
+
+- usan la DB PostgreSQL local del `docker-compose.yml`
+- el script prepara la DB automaticamente, espera a que este disponible y corre migraciones antes de ejecutar Jest
+- los tests corren en serie y validan flujos HTTP reales de auth, cursos y clases
+
+## Swagger
+
+Con la app levantada, entra a:
+
+```text
+http://localhost:3000/api
+```
+
+Los endpoints protegidos requieren `Bearer token`.
+
+## Referencias
+
+- NestJS Docs: `https://docs.nestjs.com/`
+- AGENTS del repo: `./AGENTS.md`
