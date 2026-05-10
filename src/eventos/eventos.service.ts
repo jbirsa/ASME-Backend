@@ -84,4 +84,3 @@ export class EventosService {
     return { deleted: true };
   }
 }
-

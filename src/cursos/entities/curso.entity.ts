@@ -38,4 +38,3 @@ export class Curso {
   @OneToMany(() => Inscripcion, (ins) => ins.curso)
   inscripciones?: Inscripcion[];
 }
-

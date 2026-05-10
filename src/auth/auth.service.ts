@@ -25,7 +25,8 @@ export class AuthService {
 
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmailWithPassword(email);
-    if (!user || !user.password) throw new UnauthorizedException('Credenciales inválidas');
+    if (!user || !user.password)
+      throw new UnauthorizedException('Credenciales inválidas');
     const match = await bcrypt.compare(password, user.password);
     if (!match) throw new UnauthorizedException('Credenciales inválidas');
     return user;
@@ -40,11 +41,15 @@ export class AuthService {
 
   async changeOwnPassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.usersService.findByIdWithPassword(userId);
-    if (!user || !user.password) throw new UnauthorizedException('Usuario no encontrado');
+    if (!user || !user.password)
+      throw new UnauthorizedException('Usuario no encontrado');
     const match = await bcrypt.compare(dto.currentPassword, user.password);
     if (!match) throw new UnauthorizedException('Contraseña actual incorrecta');
     const sameAsCurrent = await bcrypt.compare(dto.newPassword, user.password);
-    if (sameAsCurrent) throw new UnauthorizedException('La nueva contraseña debe ser diferente a la actual');
+    if (sameAsCurrent)
+      throw new UnauthorizedException(
+        'La nueva contraseña debe ser diferente a la actual',
+      );
     await this.usersService.changePassword(user.email, dto.newPassword);
     return { updated: true };
   }

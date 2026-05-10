@@ -1,4 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Curso } from '../../cursos/entities/curso.entity';
 
 @Entity('clases')
@@ -24,4 +30,3 @@ export class Clase {
   @Column({ type: 'int', nullable: true })
   orden: number | null;
 }
-

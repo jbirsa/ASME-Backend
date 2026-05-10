@@ -16,7 +16,9 @@ export class ClasesService {
   ) {}
 
   async create(dto: CreateClaseDto) {
-    const curso = await this.cursosRepo.findOne({ where: { cursoId: dto.cursoId } });
+    const curso = await this.cursosRepo.findOne({
+      where: { cursoId: dto.cursoId },
+    });
     if (!curso) throw new NotFoundException('Curso no encontrado');
     const clase = this.clasesRepo.create({
       curso,
@@ -46,13 +48,16 @@ export class ClasesService {
     if (!existing) throw new NotFoundException('Clase no encontrada');
 
     if (dto.cursoId !== undefined) {
-      const curso = await this.cursosRepo.findOne({ where: { cursoId: dto.cursoId } });
+      const curso = await this.cursosRepo.findOne({
+        where: { cursoId: dto.cursoId },
+      });
       if (!curso) throw new NotFoundException('Curso no encontrado');
       existing.curso = curso;
     }
 
     if (dto.titulo !== undefined) existing.titulo = dto.titulo;
-    if (dto.descripcion !== undefined) existing.descripcion = dto.descripcion as any;
+    if (dto.descripcion !== undefined)
+      existing.descripcion = dto.descripcion as any;
     if (dto.videoUrl !== undefined) existing.videoUrl = dto.videoUrl as any;
     if (dto.orden !== undefined) existing.orden = dto.orden as any;
 

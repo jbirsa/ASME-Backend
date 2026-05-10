@@ -24,7 +24,12 @@ export class PasswordResetService {
 
     const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
 
-    const entity = this.resetsRepo.create({ user, tokenHash, expiresAt, usedAt: null });
+    const entity = this.resetsRepo.create({
+      user,
+      tokenHash,
+      expiresAt,
+      usedAt: null,
+    });
     await this.resetsRepo.save(entity);
 
     // En un sistema real, aquí enviarías el mail con el token o link.
@@ -34,7 +39,10 @@ export class PasswordResetService {
 
   async consumeResetToken(token: string, newPassword: string) {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    const record = await this.resetsRepo.findOne({ where: { tokenHash }, relations: { user: true } });
+    const record = await this.resetsRepo.findOne({
+      where: { tokenHash },
+      relations: { user: true },
+    });
     if (!record || record.usedAt || record.expiresAt < new Date()) {
       return { ok: false };
     }
@@ -45,4 +53,3 @@ export class PasswordResetService {
     return { ok: true };
   }
 }
-

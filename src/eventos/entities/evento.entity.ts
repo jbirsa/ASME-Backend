@@ -53,4 +53,3 @@ export class Evento {
   })
   patrocinadores: Patrocinador[];
 }
-

@@ -1,24 +1,58 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+import {
+  HTTP_URL_REGEX,
+  ToOptionalTrimmedString,
+  ToTrimmedString,
+} from '../../common/validation/transforms';
 
 export class CreateCursoDto {
-  @ApiProperty()
+  @ApiProperty({
+    example: 'Introduccion a CAD',
+    description: 'Nombre publico del curso',
+  })
+  @ToTrimmedString()
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
   nombre: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    example: 'Curso inicial de modelado 3D para estudiantes.',
+    description: 'Descripcion breve del curso',
+  })
+  @ToOptionalTrimmedString()
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   descripcion?: string;
 
-  @ApiPropertyOptional({ name: 'imagenUrl' })
+  @ApiPropertyOptional({
+    name: 'imagenUrl',
+    example: 'https://example.com/cursos/intro-cad.jpg',
+    description: 'URL de imagen de portada del curso',
+  })
+  @ToOptionalTrimmedString()
   @IsOptional()
-  @IsString()
+  @Matches(HTTP_URL_REGEX, {
+    message: 'imagenUrl debe ser una URL http o https valida',
+  })
+  @MaxLength(500)
   imagenUrl?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    example: 'activo',
+    description: 'Estado visible del curso, por ejemplo activo o borrador',
+  })
+  @ToOptionalTrimmedString()
   @IsOptional()
   @IsString()
+  @MaxLength(30)
   estado?: string;
 }
-

@@ -21,4 +21,3 @@ export class Patrocinador {
   @ManyToMany(() => Evento, (evento) => evento.patrocinadores)
   eventos: Evento[];
 }
-
