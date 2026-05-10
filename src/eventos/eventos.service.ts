@@ -1,18 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Evento } from './entities/evento.entity';
-import { Patrocinador } from './entities/patrocinador.entity';
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
+import { PatrocinadoresService } from './patrocinadores.service';
 
 @Injectable()
 export class EventosService {
   constructor(
     @InjectRepository(Evento)
     private readonly eventosRepo: Repository<Evento>,
-    @InjectRepository(Patrocinador)
-    private readonly patrocinadoresRepo: Repository<Patrocinador>,
+    private readonly patrocinadoresService: PatrocinadoresService,
   ) {}
 
   async create(dto: CreateEventoDto) {
@@ -28,11 +27,14 @@ export class EventosService {
       imagenUrl: dto.imagenUrl,
       paginaEvento: dto.paginaEvento,
     });
-    if (dto.patrocinadorIds?.length) {
-      evento.patrocinadores = await this.patrocinadoresRepo.find({
-        where: { patrocinadorId: In(dto.patrocinadorIds) },
-      });
+
+    if (dto.patrocinadorIds !== undefined) {
+      evento.patrocinadores =
+        await this.patrocinadoresService.findManyByIdsOrFail(
+          dto.patrocinadorIds,
+        );
     }
+
     return this.eventosRepo.save(evento);
   }
 
@@ -69,11 +71,13 @@ export class EventosService {
       paginaEvento: dto.paginaEvento ?? evento.paginaEvento,
     });
 
-    if (dto.patrocinadorIds) {
-      evento.patrocinadores = await this.patrocinadoresRepo.find({
-        where: { patrocinadorId: In(dto.patrocinadorIds) },
-      });
+    if (dto.patrocinadorIds !== undefined) {
+      evento.patrocinadores =
+        await this.patrocinadoresService.findManyByIdsOrFail(
+          dto.patrocinadorIds,
+        );
     }
+
     return this.eventosRepo.save(evento);
   }
 

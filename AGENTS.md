@@ -384,6 +384,50 @@ Requiere `Bearer token` de admin.
 
 Ejemplo de `id`: `1`
 
+#### Patrocinadores
+
+`POST /patrocinadores`
+
+Requiere `Bearer token` de admin.
+
+```json
+{
+  "nombre": "SolidWorks",
+  "email": "contacto@solidworks.com",
+  "link": "https://www.solidworks.com/",
+  "imagenUrl": "https://example.com/patrocinadores/solidworks.png"
+}
+```
+
+`GET /patrocinadores`
+
+Publico.
+
+`GET /patrocinadores/:id`
+
+Publico.
+
+Ejemplo de `id`: `1`
+
+`PATCH /patrocinadores/:id`
+
+Requiere `Bearer token` de admin.
+
+Ejemplo de `id`: `1`
+
+```json
+{
+  "nombre": "Dassault Systemes",
+  "link": "https://www.3ds.com/"
+}
+```
+
+`DELETE /patrocinadores/:id`
+
+Requiere `Bearer token` de admin.
+
+Ejemplo de `id`: `1`
+
 ## Testing
 
 ### Backend
