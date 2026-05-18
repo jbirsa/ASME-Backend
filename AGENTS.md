@@ -28,6 +28,7 @@ Hoy el backend implementa principalmente:
 
 - autenticacion con JWT
 - registro y login de usuarios
+- verificacion de email para usuarios nuevos
 - recuperacion y reseteo de password
 - cursos
 - clases
@@ -173,6 +174,8 @@ Reglas:
 
 `POST /auth/register`
 
+Nota: el usuario queda sin verificar y no puede loguearse hasta completar `POST /auth/verify-email`.
+
 ```json
 {
   "email": "alumno@asme.org",
@@ -181,7 +184,25 @@ Reglas:
 }
 ```
 
+`POST /auth/verify-email`
+
+```json
+{
+  "token": "39bc44721505adbfd6a0558ea8d6eb4beb7d7dfd74555b7b99df72cd0b9f947f"
+}
+```
+
+`POST /auth/resend-verification-email`
+
+```json
+{
+  "email": "alumno@asme.org"
+}
+```
+
 `POST /auth/login`
+
+Nota: si el usuario no verifico su email, responde `403`.
 
 ```json
 {

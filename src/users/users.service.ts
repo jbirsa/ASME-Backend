@@ -15,7 +15,12 @@ export class UsersService {
     private readonly usersRepo: Repository<User>,
   ) {}
 
-  async create(data: { email: string; nombre?: string; password?: string }) {
+  async create(data: {
+    email: string;
+    nombre?: string;
+    password?: string;
+    emailVerifiedAt?: Date | null;
+  }) {
     const exists = await this.usersRepo.findOne({
       where: { email: data.email },
     });
@@ -53,6 +58,13 @@ export class UsersService {
       .addSelect('u.password')
       .where('u.id = :id', { id })
       .getOne();
+  }
+
+  async markEmailAsVerified(userId: string) {
+    const emailVerifiedAt = new Date();
+    const result = await this.usersRepo.update({ id: userId }, { emailVerifiedAt });
+    if (!result.affected) throw new NotFoundException('Usuario no encontrado');
+    return { updated: true, emailVerifiedAt };
   }
 
   async changeName(email: string, name: string) {

@@ -5,6 +5,7 @@ Backend de ASME implementado en NestJS.
 El dominio actual del proyecto incluye:
 
 - autenticacion con JWT
+- verificacion de email para nuevos registros
 - usuarios con roles `admin` y `user`
 - cursos
 - clases
@@ -39,6 +40,26 @@ Notas:
 - usa una bucket privada
 - las URLs de acceso se firman desde el backend
 - `SUPABASE_SERVICE_ROLE_KEY` no debe exponerse al frontend
+
+## Variables de entorno para email
+
+Para verificacion de cuentas y reset de contrasena por SMTP con Gmail, configura:
+
+```env
+GMAIL_USER=
+GMAIL_APP_PASSWORD=
+MAIL_FROM=
+MAIL_FROM_NAME=ASME
+FRONTEND_URL=https://asme-test-cursos.vercel.app
+EMAIL_VERIFICATION_TTL_MINUTES=1440
+RESET_PASSWORD_TTL_MINUTES=10
+```
+
+Notas:
+
+- `GMAIL_APP_PASSWORD` debe ser una app password con 2FA activo en la cuenta
+- `MAIL_FROM` puede ser el mismo valor que `GMAIL_USER`
+- `FRONTEND_URL` se usa para los links de verificacion y restablecimiento
 
 ## Setup local
 

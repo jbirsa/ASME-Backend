@@ -21,6 +21,9 @@ export class User {
   @Column({ default: 'user' })
   rol: string;
 
+  @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
+  emailVerifiedAt: Date | null;
+
   @Exclude()
   @Column({ select: false, nullable: true })
   password?: string;

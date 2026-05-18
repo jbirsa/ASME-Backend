@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createE2eApp, resetDatabase, seedAdmin } from './e2e-utils';
+import {
+  createE2eApp,
+  registerAndVerifyUser,
+  resetDatabase,
+  seedAdmin,
+} from './e2e-utils';
 
 describe('Eventos y patrocinadores flows (e2e)', () => {
   let app: INestApplication;
@@ -34,14 +39,7 @@ describe('Eventos y patrocinadores flows (e2e)', () => {
   }
 
   async function registerAndLoginUser() {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'alumno@asme.org',
-        nombre: 'Juan Perez',
-        password: '123456',
-      })
-      .expect(201);
+    await registerAndVerifyUser(app);
 
     const response = await request(app.getHttpServer())
       .post('/auth/login')

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
+import { MailService } from '../mail/mail.service';
 import { PasswordReset } from './entities/password-reset.entity';
 import { UsersService } from '../users/users.service';
 import * as crypto from 'crypto';
@@ -15,9 +16,10 @@ export class PasswordResetService {
     @InjectRepository(PasswordReset)
     private readonly resetsRepo: Repository<PasswordReset>,
     private readonly usersService: UsersService,
+    private readonly mailService: MailService,
   ) {}
 
-  async createResetCode(email: string, ttlMinutes = 10) {
+  async createResetCode(email: string, ttlMinutes?: number) {
     const user = await this.usersService.findByEmail(email);
     // Siempre responderemos como si se hubiera enviado para no filtrar existencia del email
     if (!user) return { sent: true };
@@ -26,8 +28,9 @@ export class PasswordResetService {
 
     const code = this.generateResetCode();
     const codeHash = await bcrypt.hash(code, 10);
+    const effectiveTtlMinutes = this.resolveResetTtlMinutes(ttlMinutes);
 
-    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    const expiresAt = new Date(Date.now() + effectiveTtlMinutes * 60 * 1000);
 
     const entity = this.resetsRepo.create({
       user,
@@ -38,8 +41,12 @@ export class PasswordResetService {
     });
     await this.resetsRepo.save(entity);
 
-    // En un sistema real, aquí enviarías el mail con el codigo.
-    // Para dev/test, lo devolvemos para poder probar fácilmente.
+    await this.mailService.sendPasswordResetEmail({
+      to: user.email,
+      code,
+      ttlMinutes: effectiveTtlMinutes,
+    });
+
     if (process.env.NODE_ENV !== 'production') {
       return { sent: true, code };
     }
@@ -84,6 +91,17 @@ export class PasswordResetService {
     record.usedAt = new Date();
     await this.resetsRepo.save(record);
     return { ok: true };
+  }
+
+  private resolveResetTtlMinutes(ttlMinutes?: number) {
+    if (ttlMinutes && ttlMinutes > 0) {
+      return ttlMinutes;
+    }
+
+    const raw = process.env.RESET_PASSWORD_TTL_MINUTES?.trim();
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
   }
 
   private generateResetCode() {

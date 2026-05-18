@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
+import request from 'supertest';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { AppModule } from '../src/app.module';
@@ -62,6 +63,7 @@ export async function resetDatabase(dataSource: DataSource) {
       "clase_archivos",
       "curso_archivos",
       "patrocina_a",
+      "email_verifications",
       "password_resets",
       "inscripciones",
       "clases",
@@ -80,8 +82,36 @@ export async function seedAdmin(dataSource: DataSource) {
     email: 'admin@asme.org',
     nombre: 'Admin ASME',
     rol: 'admin',
+    emailVerifiedAt: new Date(),
     password: await bcrypt.hash('admin123', 10),
   });
 
   return usersRepo.save(admin);
+}
+
+export async function registerAndVerifyUser(
+  app: INestApplication,
+  user = {
+    email: 'alumno@asme.org',
+    nombre: 'Juan Perez',
+    password: '123456',
+  },
+) {
+  const registerResponse = await request(app.getHttpServer())
+    .post('/auth/register')
+    .send(user)
+    .expect(201);
+
+  const token = registerResponse.body.verificationToken as string | undefined;
+  if (!token) {
+    throw new Error('No se recibió verificationToken en entorno de test');
+  }
+
+  await request(app.getHttpServer())
+    .post('/auth/verify-email')
+    .send({ token })
+    .expect(200)
+    .expect({ ok: true });
+
+  return registerResponse.body;
 }

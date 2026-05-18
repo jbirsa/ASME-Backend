@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createE2eApp, resetDatabase, seedAdmin } from './e2e-utils';
+import {
+  createE2eApp,
+  registerAndVerifyUser,
+  resetDatabase,
+  seedAdmin,
+} from './e2e-utils';
 
 describe('Cursos flows (e2e)', () => {
   let app: INestApplication;
@@ -21,15 +26,8 @@ describe('Cursos flows (e2e)', () => {
     await app.close();
   });
 
-  it('blocks course creation for non-admin users', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'alumno@asme.org',
-        nombre: 'Juan Perez',
-        password: '123456',
-      })
-      .expect(201);
+  async function loginVerifiedUser() {
+    await registerAndVerifyUser(app);
 
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
@@ -38,6 +36,12 @@ describe('Cursos flows (e2e)', () => {
         password: '123456',
       })
       .expect(200);
+
+    return loginResponse;
+  }
+
+  it('blocks course creation for non-admin users', async () => {
+    const loginResponse = await loginVerifiedUser();
 
     await request(app.getHttpServer())
       .post('/cursos')
@@ -76,15 +80,6 @@ describe('Cursos flows (e2e)', () => {
   });
 
   it('creates courses and classes as admin, then enrolls a user and returns mis-cursos ordered', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'alumno@asme.org',
-        nombre: 'Juan Perez',
-        password: '123456',
-      })
-      .expect(201);
-
     const adminLoginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
@@ -93,13 +88,7 @@ describe('Cursos flows (e2e)', () => {
       })
       .expect(200);
 
-    const userLoginResponse = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: 'alumno@asme.org',
-        password: '123456',
-      })
-      .expect(200);
+    const userLoginResponse = await loginVerifiedUser();
 
     const createCursoResponse = await request(app.getHttpServer())
       .post('/cursos')
@@ -205,15 +194,6 @@ describe('Cursos flows (e2e)', () => {
   });
 
   it('exposes private course and class files only to admin or enrolled users', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'alumno@asme.org',
-        nombre: 'Juan Perez',
-        password: '123456',
-      })
-      .expect(201);
-
     const adminLoginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
@@ -222,13 +202,7 @@ describe('Cursos flows (e2e)', () => {
       })
       .expect(200);
 
-    const userLoginResponse = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: 'alumno@asme.org',
-        password: '123456',
-      })
-      .expect(200);
+    const userLoginResponse = await loginVerifiedUser();
 
     const createCursoResponse = await request(app.getHttpServer())
       .post('/cursos')

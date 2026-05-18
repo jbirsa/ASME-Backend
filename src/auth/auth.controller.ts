@@ -25,6 +25,9 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { PasswordResetService } from './password-reset.service';
 import { UsersService } from '../users/users.service';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationEmailDto } from './dto/resend-verification-email.dto';
+import { EmailVerificationService } from './email-verification.service';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -32,11 +35,15 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly passwordResetService: PasswordResetService,
+    private readonly emailVerificationService: EmailVerificationService,
     private readonly usersService: UsersService,
   ) {}
 
   @ApiOperation({ summary: 'Registro de usuario' })
-  @ApiResponse({ status: 201, description: 'Usuario registrado' })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario registrado. Debe verificar su email para loguearse.',
+  })
   @ApiBody({
     type: RegisterDto,
     examples: {
@@ -55,8 +62,57 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @ApiOperation({ summary: 'Verificar email de un usuario registrado' })
+  @ApiResponse({ status: 200, description: 'Resultado de la verificacion' })
+  @ApiBody({
+    type: VerifyEmailDto,
+    examples: {
+      verificacion: {
+        summary: 'Verificacion con token recibido por email',
+        value: {
+          token:
+            '39bc44721505adbfd6a0558ea8d6eb4beb7d7dfd74555b7b99df72cd0b9f947f',
+        },
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-email')
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    const ok = await this.emailVerificationService.consumeVerificationToken(
+      dto.token,
+    );
+    if (!ok.ok) {
+      return { ok: false, message: 'Token inválido o expirado' };
+    }
+    return { ok: true };
+  }
+
+  @ApiOperation({ summary: 'Reenviar email de verificacion' })
+  @ApiResponse({ status: 200, description: 'Se envió el correo si aplica' })
+  @ApiBody({
+    type: ResendVerificationEmailDto,
+    examples: {
+      reenvio: {
+        summary: 'Reenviar email de verificacion',
+        value: {
+          email: 'alumno@asme.org',
+        },
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post('resend-verification-email')
+  resendVerificationEmail(@Body() dto: ResendVerificationEmailDto) {
+    return this.emailVerificationService.resendVerificationEmail(dto.email);
+  }
+
   @ApiOperation({ summary: 'Login con credenciales' })
   @ApiResponse({ status: 200, description: 'JWT emitido' })
+  @ApiResponse({
+    status: 403,
+    description: 'El usuario debe verificar su email antes de iniciar sesión',
+  })
   @ApiBody({
     type: LoginDto,
     examples: {
@@ -94,7 +150,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    // En dev devolvemos el codigo para poder probar; en prod solo { sent: true }
     const res = await this.passwordResetService.createResetCode(dto.email);
     return res;
   }

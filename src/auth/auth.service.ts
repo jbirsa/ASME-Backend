@@ -1,16 +1,22 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { EmailVerificationService } from './email-verification.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -19,7 +25,18 @@ export class AuthService {
       email: dto.email,
       nombre: dto.nombre,
       password: hash,
+      emailVerifiedAt: null,
     });
+
+    const verification = await this.emailVerificationService.issueVerificationForUser(
+      user,
+      this.resolveVerificationTtlMinutes(),
+    );
+
+    if (process.env.NODE_ENV !== 'production' && 'token' in verification) {
+      return { ...user, verificationToken: verification.token };
+    }
+
     return user; // password excluded by serializer
   }
 
@@ -29,6 +46,11 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     const match = await bcrypt.compare(password, user.password);
     if (!match) throw new UnauthorizedException('Credenciales inválidas');
+    if (!user.emailVerifiedAt) {
+      throw new ForbiddenException(
+        'Debes verificar tu email antes de iniciar sesión',
+      );
+    }
     return user;
   }
 
@@ -52,5 +74,12 @@ export class AuthService {
       );
     await this.usersService.changePassword(user.email, dto.newPassword);
     return { updated: true };
+  }
+
+  private resolveVerificationTtlMinutes() {
+    const raw = process.env.EMAIL_VERIFICATION_TTL_MINUTES?.trim();
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 60 * 24;
   }
 }

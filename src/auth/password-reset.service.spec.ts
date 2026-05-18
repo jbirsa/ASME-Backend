@@ -1,5 +1,6 @@
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
+import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
 import { PasswordReset } from './entities/password-reset.entity';
 import { PasswordResetService } from './password-reset.service';
@@ -17,6 +18,7 @@ describe('PasswordResetService', () => {
   let usersService: jest.Mocked<
     Pick<UsersService, 'findByEmail' | 'changePassword'>
   >;
+  let mailService: jest.Mocked<Pick<MailService, 'sendPasswordResetEmail'>>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,9 +35,14 @@ describe('PasswordResetService', () => {
       changePassword: jest.fn(),
     };
 
+    mailService = {
+      sendPasswordResetEmail: jest.fn(),
+    };
+
     service = new PasswordResetService(
       resetsRepo as unknown as Repository<PasswordReset>,
       usersService as UsersService,
+      mailService as MailService,
     );
   });
 
@@ -72,6 +79,11 @@ describe('PasswordResetService', () => {
     );
     expect(resetsRepo.save).toHaveBeenCalled();
     expect(bcrypt.hash).toHaveBeenCalledWith(result.code, 10);
+    expect(mailService.sendPasswordResetEmail).toHaveBeenCalledWith({
+      to: 'alumno@asme.org',
+      code: result.code,
+      ttlMinutes: 30,
+    });
   });
 
   it('invalidates previous active reset codes before creating a new one', async () => {

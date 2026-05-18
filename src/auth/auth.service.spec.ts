@@ -1,8 +1,9 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
+import { EmailVerificationService } from './email-verification.service';
 
 jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
@@ -21,6 +22,9 @@ describe('AuthService', () => {
     >
   >;
   let jwtService: jest.Mocked<Pick<JwtService, 'signAsync'>>;
+  let emailVerificationService: jest.Mocked<
+    Pick<EmailVerificationService, 'issueVerificationForUser'>
+  >;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -36,9 +40,14 @@ describe('AuthService', () => {
       signAsync: jest.fn(),
     };
 
+    emailVerificationService = {
+      issueVerificationForUser: jest.fn(),
+    };
+
     service = new AuthService(
       usersService as UsersService,
       jwtService as JwtService,
+      emailVerificationService as EmailVerificationService,
     );
   });
 
@@ -49,8 +58,12 @@ describe('AuthService', () => {
   it('hashes the password before registering a user', async () => {
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
     usersService.create.mockResolvedValue({ id: 'user-1' } as never);
+    emailVerificationService.issueVerificationForUser.mockResolvedValue({
+      sent: true,
+      token: 'verification-token',
+    } as never);
 
-    await service.register({
+    const result = await service.register({
       email: 'alumno@asme.org',
       nombre: 'Juan Perez',
       password: '123456',
@@ -60,6 +73,15 @@ describe('AuthService', () => {
       email: 'alumno@asme.org',
       nombre: 'Juan Perez',
       password: 'hashed-password',
+      emailVerifiedAt: null,
+    });
+    expect(emailVerificationService.issueVerificationForUser).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      60 * 24,
+    );
+    expect(result).toEqual({
+      id: 'user-1',
+      verificationToken: 'verification-token',
     });
   });
 
@@ -69,6 +91,7 @@ describe('AuthService', () => {
       email: 'alumno@asme.org',
       password: 'hash',
       rol: 'user',
+      emailVerifiedAt: new Date(),
     } as never);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -94,6 +117,7 @@ describe('AuthService', () => {
       id: 'user-1',
       email: 'alumno@asme.org',
       password: 'hash',
+      emailVerifiedAt: new Date(),
     } as never);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
@@ -102,11 +126,28 @@ describe('AuthService', () => {
     ).rejects.toThrow(new UnauthorizedException('Credenciales inválidas'));
   });
 
+  it('rejects validation when the user has not verified the email', async () => {
+    usersService.findByEmailWithPassword.mockResolvedValue({
+      id: 'user-1',
+      email: 'alumno@asme.org',
+      password: 'hash',
+      emailVerifiedAt: null,
+    } as never);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+    await expect(
+      service.validateUser('alumno@asme.org', '123456'),
+    ).rejects.toThrow(
+      new ForbiddenException('Debes verificar tu email antes de iniciar sesión'),
+    );
+  });
+
   it('signs a JWT with the validated user payload', async () => {
     jest.spyOn(service, 'validateUser').mockResolvedValue({
       id: 'user-1',
       email: 'alumno@asme.org',
       rol: 'admin',
+      emailVerifiedAt: new Date(),
     } as never);
     jwtService.signAsync.mockResolvedValue('jwt-token' as never);
 

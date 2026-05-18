@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createE2eApp, resetDatabase, seedAdmin } from './e2e-utils';
+import {
+  createE2eApp,
+  registerAndVerifyUser,
+  resetDatabase,
+  seedAdmin,
+} from './e2e-utils';
 
 describe('Auth flows (e2e)', () => {
   let app: INestApplication;
@@ -21,8 +26,8 @@ describe('Auth flows (e2e)', () => {
     await app.close();
   });
 
-  it('registers, logs in and changes the authenticated user password', async () => {
-    await request(app.getHttpServer())
+  it('requires email verification before login and then allows password changes', async () => {
+    const registerResponse = await request(app.getHttpServer())
       .post('/auth/register')
       .send({
         email: 'alumno@asme.org',
@@ -30,6 +35,24 @@ describe('Auth flows (e2e)', () => {
         password: '123456',
       })
       .expect(201);
+
+    expect(registerResponse.body.verificationToken).toEqual(expect.any(String));
+
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'alumno@asme.org',
+        password: '123456',
+      })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/auth/verify-email')
+      .send({
+        token: registerResponse.body.verificationToken,
+      })
+      .expect(200)
+      .expect({ ok: true });
 
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
@@ -67,14 +90,7 @@ describe('Auth flows (e2e)', () => {
   });
 
   it('lets an admin reset another user password', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'alumno@asme.org',
-        nombre: 'Juan Perez',
-        password: '123456',
-      })
-      .expect(201);
+    await registerAndVerifyUser(app);
 
     const adminLoginResponse = await request(app.getHttpServer())
       .post('/auth/login')
@@ -104,14 +120,7 @@ describe('Auth flows (e2e)', () => {
   });
 
   it('resets a password with the emailed code flow', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'alumno@asme.org',
-        nombre: 'Juan Perez',
-        password: '123456',
-      })
-      .expect(201);
+    await registerAndVerifyUser(app);
 
     const forgotPasswordResponse = await request(app.getHttpServer())
       .post('/auth/forgot-password')
@@ -150,5 +159,5 @@ describe('Auth flows (e2e)', () => {
         password: '654321',
       })
       .expect(200);
-  });
+  }, 15000);
 });

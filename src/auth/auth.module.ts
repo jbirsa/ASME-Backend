@@ -9,13 +9,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PasswordReset } from './entities/password-reset.entity';
 import { PasswordResetService } from './password-reset.service';
+import { MailService } from '../mail/mail.service';
+import { EmailVerification } from './entities/email-verification.entity';
+import { EmailVerificationService } from './email-verification.service';
 
 @Module({
   imports: [
     ConfigModule,
     UsersModule,
     PassportModule,
-    TypeOrmModule.forFeature([PasswordReset]),
+    TypeOrmModule.forFeature([PasswordReset, EmailVerification]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -25,6 +28,12 @@ import { PasswordResetService } from './password-reset.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PasswordResetService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    PasswordResetService,
+    EmailVerificationService,
+    MailService,
+  ],
 })
 export class AuthModule {}
