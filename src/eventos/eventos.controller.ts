@@ -7,22 +7,33 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { EventosService } from './eventos.service';
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
+
+const EVENTO_UPLOAD_FIELDS = [{ name: 'foto', maxCount: 1 }];
+
+const EVENTO_UPLOAD_LIMITS = {
+  fileSize: 25 * 1024 * 1024,
+  files: 1,
+};
 
 @ApiTags('eventos')
 @Controller('eventos')
@@ -32,23 +43,44 @@ export class EventosController {
   @ApiOperation({ summary: 'Crear evento' })
   @ApiResponse({ status: 201 })
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
-    type: CreateEventoDto,
-    examples: {
-      evento: {
-        summary: 'Evento presencial con patrocinadores',
-        value: {
-          nombre: 'Feria de Proyectos ASME',
-          tipo: 'presencial',
-          fecha: '2026-05-20',
-          direccion: 'Av. Siempre Viva 123',
-          barrio: 'Centro',
-          provincia: 'Cordoba',
-          descripcion: 'Evento institucional abierto para la comunidad.',
-          link: 'https://meet.example.com/asme-feria',
-          imagenUrl: 'https://example.com/eventos/feria.jpg',
-          paginaEvento: 'https://asme.org/eventos/feria-2026',
-          patrocinadorIds: [1, 2],
+    schema: {
+      type: 'object',
+      required: ['nombre', 'tipo', 'fecha', 'direccion', 'descripcion'],
+      properties: {
+        nombre: { type: 'string', example: 'Feria de Proyectos ASME' },
+        tipo: {
+          type: 'string',
+          enum: ['Charla', 'Visita', 'Competencia', 'Evento especial'],
+          example: 'Charla',
+        },
+        fecha: { type: 'string', example: '2026-05-20' },
+        direccion: { type: 'string', example: 'Av. Siempre Viva 123' },
+        sede: {
+          type: 'string',
+          enum: [
+            'Sede Distrito Financiero (SDF)',
+            'Sede Distrito Rectorado (SDR)',
+            'Sede Distrito Tecnologico (SDT)',
+          ],
+          example: 'Sede Distrito Financiero (SDF)',
+        },
+        descripcion: {
+          type: 'string',
+          example: 'Evento institucional abierto para la comunidad.',
+        },
+        patrocinadorIds: {
+          type: 'string',
+          example: '[1,2]',
+          description:
+            'IDs de patrocinadores. En multipart enviar como JSON string',
+        },
+        foto: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'Foto opcional del evento. Solo admite JPG, PNG o WEBP.',
         },
       },
     },
@@ -56,8 +88,14 @@ export class EventosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Post()
-  create(@Body() dto: CreateEventoDto) {
-    return this.service.create(dto);
+  @UseInterceptors(
+    FileFieldsInterceptor(EVENTO_UPLOAD_FIELDS, { limits: EVENTO_UPLOAD_LIMITS }),
+  )
+  create(
+    @Body() dto: CreateEventoDto,
+    @UploadedFiles() files: { foto?: Express.Multer.File[] },
+  ) {
+    return this.service.create(dto, files?.foto?.[0]);
   }
 
   @ApiOperation({ summary: 'Listar eventos' })
@@ -79,15 +117,47 @@ export class EventosController {
   @ApiResponse({ status: 200 })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', example: 1, description: 'ID numerico del evento' })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
-    type: UpdateEventoDto,
-    examples: {
-      actualizacion: {
-        summary: 'Actualizar descripcion o patrocinadores',
-        value: {
-          nombre: 'Feria de Proyectos ASME 2026',
-          descripcion: 'Version actualizada del evento.',
-          patrocinadorIds: [1],
+    schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', example: 'Feria de Proyectos ASME 2026' },
+        tipo: {
+          type: 'string',
+          enum: ['Charla', 'Visita', 'Competencia', 'Evento especial'],
+          example: 'Visita',
+        },
+        fecha: { type: 'string', example: '2026-05-20' },
+        direccion: { type: 'string', example: 'Av. Siempre Viva 123' },
+        sede: {
+          type: 'string',
+          enum: [
+            'Sede Distrito Financiero (SDF)',
+            'Sede Distrito Rectorado (SDR)',
+            'Sede Distrito Tecnologico (SDT)',
+          ],
+          example: 'Sede Distrito Rectorado (SDR)',
+        },
+        descripcion: {
+          type: 'string',
+          example: 'Version actualizada del evento.',
+        },
+        patrocinadorIds: {
+          type: 'string',
+          example: '[1]',
+          description:
+            'IDs de patrocinadores. En multipart enviar como JSON string',
+        },
+        eliminarFoto: {
+          type: 'boolean',
+          example: true,
+          description: 'Quita la foto actual del evento',
+        },
+        foto: {
+          type: 'string',
+          format: 'binary',
+          description: 'Nueva foto del evento',
         },
       },
     },
@@ -95,8 +165,15 @@ export class EventosController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateEventoDto) {
-    return this.service.update(id, dto);
+  @UseInterceptors(
+    FileFieldsInterceptor(EVENTO_UPLOAD_FIELDS, { limits: EVENTO_UPLOAD_LIMITS }),
+  )
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateEventoDto,
+    @UploadedFiles() files: { foto?: Express.Multer.File[] },
+  ) {
+    return this.service.update(id, dto, files?.foto?.[0]);
   }
 
   @ApiOperation({ summary: 'Eliminar evento' })

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsDateString,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -14,9 +15,23 @@ import {
   EVENT_PAGE_REGEX,
   HTTP_URL_REGEX,
   ToInteger,
+  ToOptionalIntegerArray,
   ToOptionalTrimmedString,
   ToTrimmedString,
 } from '../../common/validation/transforms';
+
+const EVENT_TYPE_OPTIONS = [
+  'Charla',
+  'Visita',
+  'Competencia',
+  'Evento especial',
+] as const;
+
+const EVENT_SEDE_OPTIONS = [
+  'Sede Distrito Financiero (SDF)',
+  'Sede Distrito Rectorado (SDR)',
+  'Sede Distrito Tecnologico (SDT)',
+] as const;
 
 export class CreateEventoDto {
   @ApiProperty({
@@ -29,30 +44,50 @@ export class CreateEventoDto {
   @MaxLength(140)
   nombre: string;
 
-  @ApiPropertyOptional({ example: 'presencial', description: 'Tipo de evento' })
-  @ToOptionalTrimmedString()
-  @IsOptional()
+  @ApiProperty({
+    example: 'Charla',
+    description: 'Tipo de evento',
+    enum: EVENT_TYPE_OPTIONS,
+  })
+  @ToTrimmedString()
   @IsString()
+  @IsNotEmpty()
+  @IsIn(EVENT_TYPE_OPTIONS, {
+    message: 'tipo debe ser uno de los valores permitidos',
+  })
   @MaxLength(40)
-  tipo?: string;
+  tipo: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Fecha ISO en formato YYYY-MM-DD',
     example: '2026-05-20',
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsDateString()
-  fecha?: string;
+  fecha: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Av. Siempre Viva 123',
     description: 'Direccion del evento',
+  })
+  @ToTrimmedString()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(160)
+  direccion: string;
+
+  @ApiPropertyOptional({
+    example: 'Sede Distrito Financiero (SDF)',
+    description: 'Sede del evento dentro de ASME',
+    enum: EVENT_SEDE_OPTIONS,
   })
   @ToOptionalTrimmedString()
   @IsOptional()
   @IsString()
-  @MaxLength(160)
-  direccion?: string;
+  @IsIn(EVENT_SEDE_OPTIONS, {
+    message: 'sede debe ser una de las sedes permitidas',
+  })
+  sede?: string;
 
   @ApiPropertyOptional({
     example: 'Centro',
@@ -74,15 +109,15 @@ export class CreateEventoDto {
   @MaxLength(80)
   provincia?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Evento institucional abierto para la comunidad.',
     description: 'Descripcion general del evento',
   })
-  @ToOptionalTrimmedString()
-  @IsOptional()
+  @ToTrimmedString()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(3000)
-  descripcion?: string;
+  descripcion: string;
 
   @ApiPropertyOptional({
     example: 'https://meet.example.com/asme-feria',
@@ -129,7 +164,7 @@ export class CreateEventoDto {
   })
   @IsOptional()
   @IsArray()
-  @ToInteger()
+  @ToOptionalIntegerArray()
   @IsInt({ each: true })
   @Min(1, { each: true })
   patrocinadorIds?: number[];

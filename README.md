@@ -18,9 +18,27 @@ Swagger esta disponible en `/api` cuando la app esta levantada.
 - NestJS 11
 - TypeORM
 - PostgreSQL
+- Supabase Storage para assets privados
 - Swagger
 - class-validator
 - Jest + Supertest
+
+## Variables de entorno para storage
+
+Para subir fotos y archivos privados de cursos y clases, configura:
+
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_STORAGE_BUCKET=asme-private-assets
+SUPABASE_SIGNED_URL_TTL_SECONDS=300
+```
+
+Notas:
+
+- usa una bucket privada
+- las URLs de acceso se firman desde el backend
+- `SUPABASE_SERVICE_ROLE_KEY` no debe exponerse al frontend
 
 ## Setup local
 
@@ -207,6 +225,12 @@ http://localhost:3000/api
 ```
 
 Los endpoints protegidos requieren `Bearer token`.
+
+Los endpoints `POST` y `PATCH` de `cursos` y `clases` aceptan `multipart/form-data`:
+
+- `cursos`: `foto` opcional y `archivos` opcionales
+- `clases`: `archivos` opcionales
+- los archivos se almacenan en Supabase Storage y la API responde con signed URLs temporales
 
 ## Referencias
 

@@ -1,6 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { UsersService } from '../users/users.service';
+import { CursoArchivo } from './entities/curso-archivo.entity';
 import { Curso } from './entities/curso.entity';
 import { Inscripcion } from './entities/inscripcion.entity';
 import { CursosService } from './cursos.service';
@@ -16,7 +18,14 @@ describe('CursosService', () => {
   let inscripcionesRepo: jest.Mocked<
     Pick<Repository<Inscripcion>, 'findOne' | 'create' | 'save' | 'find'>
   >;
+  let cursoArchivosRepo: jest.Mocked<Pick<Repository<CursoArchivo>, 'save'>>;
   let usersService: jest.Mocked<Pick<UsersService, 'findById'>>;
+  let storageService: jest.Mocked<
+    Pick<
+      SupabaseStorageService,
+      'createSignedUrlMap' | 'removeFiles' | 'uploadFile'
+    >
+  >;
 
   beforeEach(() => {
     cursosRepo = {
@@ -35,14 +44,26 @@ describe('CursosService', () => {
       find: jest.fn(),
     };
 
+    cursoArchivosRepo = {
+      save: jest.fn(),
+    };
+
     usersService = {
       findById: jest.fn(),
     };
 
+    storageService = {
+      createSignedUrlMap: jest.fn().mockResolvedValue(new Map()),
+      removeFiles: jest.fn(),
+      uploadFile: jest.fn(),
+    };
+
     service = new CursosService(
       cursosRepo as unknown as Repository<Curso>,
+      cursoArchivosRepo as unknown as Repository<CursoArchivo>,
       inscripcionesRepo as unknown as Repository<Inscripcion>,
       usersService as UsersService,
+      storageService as SupabaseStorageService,
     );
   });
 
@@ -140,7 +161,7 @@ describe('CursosService', () => {
   });
 
   it('throws when updating a nonexistent course', async () => {
-    cursosRepo.preload.mockResolvedValue(undefined as never);
+    cursosRepo.findOne.mockResolvedValue(null as never);
 
     await expect(
       service.update(10, { nombre: 'Nuevo nombre' }),

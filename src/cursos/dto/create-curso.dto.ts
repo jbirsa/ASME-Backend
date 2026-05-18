@@ -36,7 +36,8 @@ export class CreateCursoDto {
   @ApiPropertyOptional({
     name: 'imagenUrl',
     example: 'https://example.com/cursos/intro-cad.jpg',
-    description: 'URL de imagen de portada del curso',
+    description:
+      'URL externa opcional de la portada si no se sube una foto al storage privado',
   })
   @ToOptionalTrimmedString()
   @IsOptional()

@@ -25,6 +25,9 @@ export class Evento {
   direccion: string;
 
   @Column({ nullable: true })
+  sede: string;
+
+  @Column({ nullable: true })
   barrio: string;
 
   @Column({ nullable: true })
@@ -36,11 +39,14 @@ export class Evento {
   @Column({ nullable: true })
   link: string;
 
-  @Column({ name: 'imagen_url', nullable: true })
-  imagenUrl: string;
+  @Column({ type: 'varchar', name: 'imagen_url', nullable: true })
+  imagenUrl: string | null;
 
-  @Column({ name: 'pagina_evento', nullable: true })
-  paginaEvento: string;
+  @Column({ type: 'varchar', name: 'imagen_storage_path', nullable: true })
+  imagenStoragePath: string | null;
+
+  @Column({ type: 'varchar', name: 'pagina_evento', nullable: true })
+  paginaEvento: string | null;
 
   @ManyToMany(() => Patrocinador, (p) => p.eventos, { cascade: false })
   @JoinTable({

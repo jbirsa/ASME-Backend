@@ -54,6 +54,45 @@ describe('Eventos y patrocinadores flows (e2e)', () => {
     return response.body.access_token as string;
   }
 
+  it('creates and updates event photos with multipart requests', async () => {
+    const adminToken = await loginAsAdmin();
+
+    const createEventoResponse = await request(app.getHttpServer())
+      .post('/eventos')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .field('nombre', 'Congreso ASME 2026')
+      .field('tipo', 'Evento especial')
+      .field('fecha', '2026-08-10')
+      .field('direccion', 'Av. Siempre Viva 123')
+      .field('descripcion', 'Evento anual con expositores invitados.')
+      .attach('foto', Buffer.from('foto evento inicial'), 'evento-inicial.png')
+      .expect(201);
+
+    expect(createEventoResponse.body.imagenUrl).toContain(
+      'https://storage.test/',
+    );
+
+    const eventoId = createEventoResponse.body.eventoId;
+
+    const updatedEventoResponse = await request(app.getHttpServer())
+      .patch(`/eventos/${eventoId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .field('eliminarFoto', 'true')
+      .expect(200);
+
+    expect(updatedEventoResponse.body.imagenUrl).toBeNull();
+
+    const replacedPhotoResponse = await request(app.getHttpServer())
+      .patch(`/eventos/${eventoId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('foto', Buffer.from('foto evento nueva'), 'evento-nuevo.png')
+      .expect(200);
+
+    expect(replacedPhotoResponse.body.imagenUrl).toContain(
+      'https://storage.test/',
+    );
+  });
+
   it('creates, lists, updates and deletes patrocinadores with admin-only writes', async () => {
     const adminToken = await loginAsAdmin();
     const userToken = await registerAndLoginUser();
@@ -157,9 +196,10 @@ describe('Eventos y patrocinadores flows (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         nombre: 'Feria de Proyectos ASME',
-        tipo: 'presencial',
+        tipo: 'Charla',
         fecha: '2026-05-20',
         direccion: 'Av. Siempre Viva 123',
+        sede: 'Sede Distrito Financiero (SDF)',
         barrio: 'Centro',
         provincia: 'Cordoba',
         descripcion: 'Evento institucional abierto para la comunidad.',
@@ -177,6 +217,7 @@ describe('Eventos y patrocinadores flows (e2e)', () => {
       .expect(200);
 
     expect(createdEvento.body.patrocinadores).toHaveLength(1);
+    expect(createdEvento.body.sede).toBe('Sede Distrito Financiero (SDF)');
     expect(createdEvento.body.patrocinadores[0]).toMatchObject({
       patrocinadorId: firstPatrocinadorId,
       nombre: 'SolidWorks',
@@ -201,6 +242,10 @@ describe('Eventos y patrocinadores flows (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         nombre: 'Evento invalido',
+        tipo: 'Charla',
+        fecha: '2026-06-01',
+        direccion: 'Av. Siempre Viva 123',
+        descripcion: 'Evento con patrocinadores inexistentes.',
         patrocinadorIds: [9999],
       })
       .expect(404);

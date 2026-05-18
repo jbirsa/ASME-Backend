@@ -3,8 +3,10 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ClaseArchivo } from './clase-archivo.entity';
 import { Curso } from '../../cursos/entities/curso.entity';
 
 @Entity('clases')
@@ -21,12 +23,15 @@ export class Clase {
   @Column()
   titulo: string;
 
-  @Column({ nullable: true })
-  descripcion: string;
+  @Column({ type: 'varchar', nullable: true })
+  descripcion: string | null;
 
-  @Column({ name: 'video_url', nullable: true })
-  videoUrl: string;
+  @Column({ type: 'varchar', name: 'video_url', nullable: true })
+  videoUrl: string | null;
 
   @Column({ type: 'int', nullable: true })
   orden: number | null;
+
+  @OneToMany(() => ClaseArchivo, (archivo) => archivo.clase)
+  archivos?: ClaseArchivo[];
 }

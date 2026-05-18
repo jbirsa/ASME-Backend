@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { Evento } from './entities/evento.entity';
 import { EventosService } from './eventos.service';
 import { PatrocinadoresService } from './patrocinadores.service';
@@ -11,6 +12,12 @@ describe('EventosService', () => {
   >;
   let patrocinadoresService: jest.Mocked<
     Pick<PatrocinadoresService, 'findManyByIdsOrFail'>
+  >;
+  let storageService: jest.Mocked<
+    Pick<
+      SupabaseStorageService,
+      'createSignedUrlMap' | 'removeFiles' | 'uploadFile'
+    >
   >;
 
   beforeEach(() => {
@@ -26,9 +33,16 @@ describe('EventosService', () => {
       findManyByIdsOrFail: jest.fn(),
     };
 
+    storageService = {
+      createSignedUrlMap: jest.fn().mockResolvedValue(new Map()),
+      removeFiles: jest.fn(),
+      uploadFile: jest.fn(),
+    };
+
     service = new EventosService(
       eventosRepo as unknown as Repository<Evento>,
       patrocinadoresService as PatrocinadoresService,
+      storageService as SupabaseStorageService,
     );
   });
 
@@ -37,9 +51,21 @@ describe('EventosService', () => {
 
     eventosRepo.create.mockReturnValue(evento as never);
     eventosRepo.save.mockResolvedValue({ eventoId: 1, ...evento } as never);
+    eventosRepo.findOne.mockResolvedValue({
+      eventoId: 1,
+      nombre: 'Feria de Proyectos ASME',
+      tipo: 'Charla',
+      fecha: '2026-05-20',
+      direccion: 'Av. Siempre Viva 123',
+      descripcion: 'Evento institucional',
+      patrocinadores: [],
+    } as never);
 
     await service.create({
       nombre: 'Feria de Proyectos ASME',
+      tipo: 'Charla',
+      fecha: '2026-05-20',
+      direccion: 'Av. Siempre Viva 123',
       descripcion: 'Evento institucional',
     });
 
@@ -56,9 +82,22 @@ describe('EventosService', () => {
       patrocinadores as never,
     );
     eventosRepo.save.mockResolvedValue({ eventoId: 1, ...evento } as never);
+    eventosRepo.findOne.mockResolvedValue({
+      eventoId: 1,
+      nombre: 'Feria de Proyectos ASME',
+      tipo: 'Visita',
+      fecha: '2026-05-21',
+      direccion: 'Av. Siempre Viva 123',
+      descripcion: 'Evento institucional',
+      patrocinadores,
+    } as never);
 
     await service.create({
       nombre: 'Feria de Proyectos ASME',
+      tipo: 'Visita',
+      fecha: '2026-05-21',
+      direccion: 'Av. Siempre Viva 123',
+      descripcion: 'Evento institucional',
       patrocinadorIds: [1],
     });
 
@@ -89,6 +128,7 @@ describe('EventosService', () => {
       tipo: 'virtual',
       fecha: '2026-05-10',
       direccion: 'Old address',
+      sede: 'Sede Distrito Financiero (SDF)',
       barrio: 'Old barrio',
       provincia: 'Old provincia',
       descripcion: 'Old desc',
@@ -99,7 +139,15 @@ describe('EventosService', () => {
     };
     const nuevosPatrocinadores = [{ patrocinadorId: 2, nombre: 'AutoDesk' }];
 
-    eventosRepo.findOne.mockResolvedValue(existingEvento as never);
+    eventosRepo.findOne
+      .mockResolvedValueOnce(existingEvento as never)
+      .mockResolvedValueOnce({
+        ...existingEvento,
+        nombre: 'Nuevo nombre',
+        sede: 'Sede Distrito Rectorado (SDR)',
+        descripcion: 'Nueva desc',
+        patrocinadores: nuevosPatrocinadores,
+      } as never);
     patrocinadoresService.findManyByIdsOrFail.mockResolvedValue(
       nuevosPatrocinadores as never,
     );
@@ -107,6 +155,7 @@ describe('EventosService', () => {
 
     const result = await service.update(1, {
       nombre: 'Nuevo nombre',
+      sede: 'Sede Distrito Rectorado (SDR)',
       descripcion: 'Nueva desc',
       patrocinadorIds: [2],
     });
@@ -115,6 +164,7 @@ describe('EventosService', () => {
     expect(result).toMatchObject({
       eventoId: 1,
       nombre: 'Nuevo nombre',
+      sede: 'Sede Distrito Rectorado (SDR)',
       descripcion: 'Nueva desc',
       patrocinadores: nuevosPatrocinadores,
       tipo: 'virtual',

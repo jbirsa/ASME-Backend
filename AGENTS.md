@@ -31,6 +31,7 @@ Hoy el backend implementa principalmente:
 - recuperacion y reseteo de password
 - cursos
 - clases
+- archivos privados para cursos y clases mediante Supabase Storage
 - inscripciones a cursos
 - eventos
 - patrocinadores asociados a eventos
@@ -73,6 +74,7 @@ Stack actual detectado en el repo:
 - NestJS 11
 - TypeORM
 - PostgreSQL
+- Supabase Storage
 - JWT + Passport
 - Swagger con `@nestjs/swagger`
 - `class-validator` y `class-transformer`
@@ -86,6 +88,7 @@ Caracteristicas actuales:
 - `TypeOrmModule` con `autoLoadEntities`
 - migraciones TypeORM como mecanismo principal de cambios de esquema
 - base local via `docker-compose.yml`
+- signed URLs temporales para assets privados de cursos y clases
 
 ## Modulos Actuales
 
@@ -135,6 +138,7 @@ La API actual usa:
 - recursos principales en castellano: `cursos`, `clases`, `eventos`
 - autenticacion via `Bearer token`
 - roles con `@Roles('admin')` y `@Roles('admin', 'user')`
+- `multipart/form-data` en create/update de `cursos` y `clases` cuando se suben assets
 
 Al agregar nuevos endpoints:
 
@@ -234,14 +238,19 @@ Requiere `Bearer token` de admin.
 
 Requiere `Bearer token` de admin.
 
-```json
-{
-  "nombre": "Introduccion a CAD",
-  "descripcion": "Curso inicial de modelado 3D para estudiantes.",
-  "imagenUrl": "https://example.com/cursos/intro-cad.jpg",
-  "estado": "activo"
-}
-```
+Usar `multipart/form-data`.
+
+Campos de texto:
+
+- `nombre`: `Introduccion a CAD`
+- `descripcion`: `Curso inicial de modelado 3D para estudiantes.`
+- `estado`: `activo`
+- `imagenUrl`: `https://example.com/cursos/intro-cad.jpg` (opcional, solo si no se sube `foto`)
+
+Archivos:
+
+- `foto`: imagen opcional de portada
+- `archivos`: multiples archivos opcionales del curso
 
 `GET /cursos`
 
@@ -269,12 +278,16 @@ Requiere `Bearer token` de admin.
 
 Ejemplo de `id`: `1`
 
-```json
-{
-  "nombre": "Introduccion a CAD - Edicion 2026",
-  "estado": "activo"
-}
-```
+Usar `multipart/form-data`.
+
+Campos posibles:
+
+- `nombre`: `Introduccion a CAD - Edicion 2026`
+- `estado`: `activo`
+- `eliminarFoto`: `true`
+- `archivoIdsAEliminar`: `[1,2]` como JSON string
+- `foto`: nueva imagen opcional
+- `archivos`: nuevos archivos opcionales del curso
 
 `DELETE /cursos/:id`
 
@@ -288,15 +301,19 @@ Ejemplo de `id`: `1`
 
 Requiere `Bearer token` de admin.
 
-```json
-{
-  "cursoId": 1,
-  "titulo": "Clase 1 - Interfaz y primeros pasos",
-  "descripcion": "Recorrido inicial por el entorno de trabajo.",
-  "videoUrl": "https://www.youtube.com/watch?v=abcd1234",
-  "orden": 1
-}
-```
+Usar `multipart/form-data`.
+
+Campos de texto:
+
+- `cursoId`: `1`
+- `titulo`: `Clase 1 - Interfaz y primeros pasos`
+- `descripcion`: `Recorrido inicial por el entorno de trabajo.`
+- `videoUrl`: `https://www.youtube.com/watch?v=abcd1234`
+- `orden`: `1`
+
+Archivos:
+
+- `archivos`: multiples archivos opcionales de la clase
 
 `GET /clases`
 
@@ -320,12 +337,14 @@ Requiere `Bearer token` de admin.
 
 Ejemplo de `id`: `1`
 
-```json
-{
-  "titulo": "Clase 1 - Interfaz actualizada",
-  "orden": 2
-}
-```
+Usar `multipart/form-data`.
+
+Campos posibles:
+
+- `titulo`: `Clase 1 - Interfaz actualizada`
+- `orden`: `2`
+- `archivoIdsAEliminar`: `[1,2]` como JSON string
+- `archivos`: nuevos archivos opcionales de la clase
 
 `DELETE /clases/:id`
 
