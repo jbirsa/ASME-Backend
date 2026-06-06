@@ -70,6 +70,11 @@ export class EventosController {
           type: 'string',
           example: 'Evento institucional abierto para la comunidad.',
         },
+        link: {
+          type: 'string',
+          example: 'https://forms.gle/tu-formulario',
+          description: 'Link opcional de inscripcion o streaming',
+        },
         patrocinadorIds: {
           type: 'string',
           example: '[1,2]',
@@ -142,6 +147,11 @@ export class EventosController {
         descripcion: {
           type: 'string',
           example: 'Version actualizada del evento.',
+        },
+        link: {
+          type: 'string',
+          example: 'https://forms.gle/tu-formulario',
+          description: 'Link opcional de inscripcion o streaming',
         },
         patrocinadorIds: {
           type: 'string',
